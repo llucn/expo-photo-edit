@@ -1,0 +1,17 @@
+{
+  "platforms": [
+    "apple",
+    "android",
+    "web"
+  ],
+  "apple": {
+    "modules": [
+      "ExpoPhotoEditModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "com.deltasoft365.photoedit.ExpoPhotoEditModule"
+    ]
+  }
+}
