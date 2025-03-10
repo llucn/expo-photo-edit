@@ -1,14 +1,37 @@
+import { useState } from 'react';
 import { useEvent } from 'expo';
 import ExpoPhotoEdit, { ExpoPhotoEditView } from 'expo-photo-edit';
-import { Button, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { Button, SafeAreaView, ScrollView, Text, View, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function App() {
   const onChangePayload = useEvent(ExpoPhotoEdit, 'onChange');
+  const [image, setImage] = useState<string | undefined>(undefined);
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.container}>
         <Text style={styles.header}>Module API Example</Text>
+        <Group name="Pick Image">
+          <Button title="Pick an image" onPress={pickImage} />
+          {image && <Image source={{ uri: image }} style={styles.image} />}
+        </Group>
         <Group name="Constants">
           <Text>{ExpoPhotoEdit.PI}</Text>
         </Group>
@@ -68,6 +91,10 @@ const styles = {
   },
   view: {
     flex: 1,
+    height: 200,
+  },
+  image: {
+    width: 200,
     height: 200,
   },
 };
