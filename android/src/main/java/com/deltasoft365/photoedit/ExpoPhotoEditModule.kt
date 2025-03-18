@@ -1,50 +1,64 @@
 package com.deltasoft365.photoedit
 
+import android.app.Activity
+import android.content.Intent
+import com.facebook.react.bridge.ActivityEventListener
+import com.facebook.react.bridge.BaseActivityEventListener
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReadableArray
+import com.facebook.react.bridge.ReadableMap
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import java.net.URL
+import com.reactnativephotoeditor.activity.PhotoEditorActivity
+import com.reactnativephotoeditor.activity.constant.ResponseCode
+import expo.modules.kotlin.Promise
 
 class ExpoPhotoEditModule : Module() {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
+  private val EDIT_SUCCESSFUL = 1
+  private var promise: Promise? = null
+
   override fun definition() = ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('ExpoPhotoEdit')` in JavaScript.
     Name("ExpoPhotoEdit")
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants(
-      "PI" to Math.PI
-    )
-
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      "Hello world! 👋"
-    }
-
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { value: String ->
-      // Send an event to JavaScript.
-      sendEvent("onChange", mapOf(
-        "value" to value
-      ))
-    }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of
-    // the view definition: Prop, Events.
-    View(ExpoPhotoEditView::class) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { view: ExpoPhotoEditView, url: URL ->
-        view.webView.loadUrl(url.toString())
+    AsyncFunction("open") { options: ReadableMap?, promise: Promise ->
+      this@ExpoPhotoEditModule.promise = promise
+      val activity = this@ExpoPhotoEditModule.appContext.currentActivity
+      if (activity == null) {
+        promise.reject("ACTIVITY_DOES_NOT_EXIST", "Activity doesn't exist", null)
+        return@AsyncFunction
       }
-      // Defines an event that the view can send to JavaScript.
-      Events("onLoad")
+      val context = appContext.reactContext as ReactApplicationContext
+      val intent = Intent(context, PhotoEditorActivity::class.java)
+      context.addActivityEventListener(mActivityEventListener)
+
+      val path = options?.getString("path")
+      val stickers = options?.getArray("stickers") as ReadableArray
+
+      intent.putExtra("path", path)
+      intent.putExtra("stickers", stickers.toArrayList())
+
+      activity.startActivityForResult(intent, EDIT_SUCCESSFUL)
+    }
+  }
+
+  private val mActivityEventListener: ActivityEventListener = object : BaseActivityEventListener() {
+    override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, intent: Intent?) {
+      if (requestCode == EDIT_SUCCESSFUL) {
+        when (resultCode) {
+          ResponseCode.RESULT_OK -> {
+            val path = intent?.getStringExtra("path")
+            promise?.resolve("file://$path")
+          }
+          ResponseCode.RESULT_CANCELED -> {
+            promise?.reject("USER_CANCELLED", "User has cancelled", null)
+          }
+          ResponseCode.LOAD_IMAGE_FAILED -> {
+            val path = intent?.getStringExtra("path")
+            promise?.reject("LOAD_IMAGE_FAILED", "Load image failed: $path", null)
+          }
+          
+        }
+      }
     }
   }
 }

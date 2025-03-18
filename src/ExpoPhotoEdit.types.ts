@@ -1,19 +1,15 @@
-import type { StyleProp, ViewStyle } from 'react-native';
-
-export type OnLoadEventPayload = {
-  url: string;
-};
-
 export type ExpoPhotoEditModuleEvents = {
-  onChange: (params: ChangeEventPayload) => void;
 };
 
-export type ChangeEventPayload = {
-  value: string;
+export type ExpoPhotoEditModuleOptions = {
+  path: String;
+  stickers: Array<String>;
 };
 
-export type ExpoPhotoEditViewProps = {
-  url: string;
-  onLoad: (event: { nativeEvent: OnLoadEventPayload }) => void;
-  style?: StyleProp<ViewStyle>;
-};
+export type ErrorCode =
+  | 'USER_CANCELLED'
+  | 'IMAGE_LOAD_FAILED'
+  | 'ACTIVITY_DOES_NOT_EXIST'
+  | 'FAILED_TO_SAVE_IMAGE'
+  | 'DONT_FIND_IMAGE'
+  | 'ERROR_UNKNOW';
