@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Image, View } from 'react-native';
+import { Button, SafeAreaView, ScrollView, Text, View, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import PhotoEditor from 'expo-photo-edit';
 
@@ -40,15 +40,43 @@ export default function App() {
   };
 
   return (
-    <View style={styles.container}>
-      <Button title="Pick an image from camera roll" onPress={pickImage} />
-      {image && <Image source={{ uri: image }} style={styles.image} />}
-      {image && <Button title="Edit this image" onPress={editImage} />}
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.container}>
+        <Text style={styles.header}>Expo Photo Edit</Text>
+        <Group name="Example">
+          <Button title="Pick an image from camera roll" onPress={pickImage} />
+          {image && <Image source={{ uri: image }} style={styles.image} />}
+          {image && <Button title="Edit this image" onPress={editImage} />}
+        </Group>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function Group(props: { name: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.group}>
+      <Text style={styles.groupHeader}>{props.name}</Text>
+      {props.children}
     </View>
   );
 }
 
 const styles = {
+  header: {
+    fontSize: 30,
+    margin: 20,
+  },
+  groupHeader: {
+    fontSize: 20,
+    marginBottom: 20,
+  },
+  group: {
+    margin: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+  },
   container: {
     flex: 1,
     backgroundColor: '#eee',
