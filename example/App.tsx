@@ -1,37 +1,52 @@
-import { useEvent } from 'expo';
-import ExpoPhotoEdit, { ExpoPhotoEditView } from 'expo-photo-edit';
-import { Button, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Button, SafeAreaView, ScrollView, Text, View, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import PhotoEditor from 'expo-photo-edit';
 
 export default function App() {
-  const onChangePayload = useEvent(ExpoPhotoEdit, 'onChange');
+  const [image, setImage] = useState<string | null>(null);
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  const editImage = async () => {
+    let result = await PhotoEditor.open({
+      path: image || '',
+      stickers: [
+        'https://cdn-icons-png.flaticon.com/512/5272/5272912.png',
+        'https://cdn-icons-png.flaticon.com/512/5272/5272913.png',
+        'https://cdn-icons-png.flaticon.com/512/5272/5272916.png',
+      ],
+    });
+
+    console.log(result);
+
+    if (result) {
+      setImage(result.toString());
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.container}>
-        <Text style={styles.header}>Module API Example</Text>
-        <Group name="Constants">
-          <Text>{ExpoPhotoEdit.PI}</Text>
-        </Group>
-        <Group name="Functions">
-          <Text>{ExpoPhotoEdit.hello()}</Text>
-        </Group>
-        <Group name="Async functions">
-          <Button
-            title="Set value"
-            onPress={async () => {
-              await ExpoPhotoEdit.setValueAsync('Hello from JS!');
-            }}
-          />
-        </Group>
-        <Group name="Events">
-          <Text>{onChangePayload?.value}</Text>
-        </Group>
-        <Group name="Views">
-          <ExpoPhotoEditView
-            url="https://www.example.com"
-            onLoad={({ nativeEvent: { url } }) => console.log(`Loaded: ${url}`)}
-            style={styles.view}
-          />
+        <Text style={styles.header}>Expo Photo Edit</Text>
+        <Group name="Example">
+          <Button title="Pick an image from camera roll" onPress={pickImage} />
+          {image && <Image source={{ uri: image }} style={styles.image} />}
+          {image && <Button title="Edit this image" onPress={editImage} />}
         </Group>
       </ScrollView>
     </SafeAreaView>
@@ -66,8 +81,8 @@ const styles = {
     flex: 1,
     backgroundColor: '#eee',
   },
-  view: {
-    flex: 1,
+  image: {
+    width: 200,
     height: 200,
   },
 };

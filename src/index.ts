@@ -1,5 +1,22 @@
-// Reexport the native module. On web, it will be resolved to ExpoPhotoEditModule.web.ts
-// and on native platforms to ExpoPhotoEditModule.ts
-export { default } from './ExpoPhotoEditModule';
-export { default as ExpoPhotoEditView } from './ExpoPhotoEditView';
-export * from  './ExpoPhotoEdit.types';
+import { requireNativeModule } from 'expo';
+
+export type Options = {
+  path: String;
+  stickers: Array<String>;
+};
+
+export type ErrorCode =
+  | 'USER_CANCELLED'
+  | 'IMAGE_LOAD_FAILED'
+  | 'ACTIVITY_DOES_NOT_EXIST'
+  | 'FAILED_TO_SAVE_IMAGE'
+  | 'DONT_FIND_IMAGE'
+  | 'ERROR_UNKNOW';
+
+type PhotoEditorType = {
+  open(option: Options): Promise<String>;
+};
+
+const PhotoEditor = requireNativeModule('ExpoPhotoEdit');
+
+export default PhotoEditor as PhotoEditorType;
