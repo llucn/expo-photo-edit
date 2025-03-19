@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.deltasoft365.photoedit.example"
+      "package": "com.deltasoft365.photoedit.example",
+      "allowBackup": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,6 +34,19 @@
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera.",
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+        }
+      ],
+      [
+        "../app.plugin.js",
+        {
+          "podfile": {
+            "anchor": "prepare_react_native_project!",
+            "offset": -1,
+            "newSrc": [
+              "pod 'SDWebImage', '~> 5.11.1', :modular_headers => true", 
+              "pod 'SDWebImageWebPCoder', '~> 0.8.4', :modular_headers => true"
+            ]
+          }
         }
       ]
     ]
