@@ -1,48 +1,121 @@
+import Foundation
+import UIKit
+import Photos
+import SDWebImage
+import AVFoundation
+//import ZLImageEditor
 import ExpoModulesCore
 
 public class ExpoPhotoEditModule: Module {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
+  var window: UIWindow?
+  var bridge: RCTBridge!
+  
+  var promise: Promise!
+  var delegate: EditImageDelegate!
+  
   public func definition() -> ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('ExpoPhotoEdit')` in JavaScript.
     Name("ExpoPhotoEdit")
-
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants([
-      "PI": Double.pi
-    ])
-
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      return "Hello world! 👋"
-    }
-
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
-    }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of the
-    // view definition: Prop, Events.
-    View(ExpoPhotoEditView.self) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { (view: ExpoPhotoEditView, url: URL) in
-        if view.webView.url != url {
-          view.webView.load(URLRequest(url: url))
-        }
+    
+    AsyncFunction("open") { (options: PhotoEditOptions, promise: Promise) in
+      
+      // handle path
+      guard let path = options.path else {
+        promise.reject("DONT_FIND_IMAGE", "Dont find image")
+        return;
       }
+      
+      self.delegate = EditImageDelegate()
+      self.delegate.promise = promise
 
-      Events("onLoad")
+      getUIImage(url: path) { image in
+          DispatchQueue.main.async {
+              //  set config
+              self.setConfiguration(options: options, promise: promise)
+              self.presentController(image: image)
+          }
+      } reject: {_ in
+          promise.reject("LOAD_IMAGE_FAILED", "Load image failed: " + path)
+      }
     }
+    
   }
+  
+  private func setConfiguration(options: PhotoEditOptions, promise: Promise) -> Void{
+      self.promise = promise;
+      
+      // Stickers
+      let stickers = options.stickers ?? []
+      ZLImageEditorConfiguration.default().imageStickerContainerView = StickerView(stickers: stickers)
+      
+      
+      //Config
+      ZLImageEditorConfiguration.default().editDoneBtnBgColor = UIColor(red:255/255.0, green:238/255.0, blue:101/255.0, alpha:1.0)
+
+      ZLImageEditorConfiguration.default().editImageTools = [.draw, .clip, .filter, .imageSticker, .textSticker]
+      
+      //Filters Lut
+      do {
+          let filters = ColorCubeLoader()
+          ZLImageEditorConfiguration.default().filters = try filters.load()
+      } catch {
+          assertionFailure("\(error)")
+      }
+  }
+  
+  private func presentController(image: UIImage) {
+      if let controller = UIApplication.getTopViewController() {
+          controller.modalTransitionStyle = .crossDissolve
+          
+        ZLEditImageViewController.showEditImageVC(parentVC:controller , image: image, delegate: self.delegate) { [weak self] (resImage, editModel) in
+              let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as String
+              
+              let destinationPath = URL(fileURLWithPath: documentsPath).appendingPathComponent(String(Int64(Date().timeIntervalSince1970 * 1000)) + ".png")
+              
+              do {
+                  try resImage.pngData()?.write(to: destinationPath)
+                  self?.promise.resolve(destinationPath.absoluteString)
+              } catch {
+                  debugPrint("writing file error", error)
+              }
+          }
+      }
+  }
+  
+  
+  private func getUIImage (url: String ,completion:@escaping (UIImage) -> (), reject:@escaping(String)->()){
+      if let path = URL(string: url) {
+          SDWebImageManager.shared.loadImage(with: path, options: .continueInBackground, progress: { (recieved, expected, nil) in
+          }, completed: { (downloadedImage, data, error, SDImageCacheType, true, imageUrlString) in
+              DispatchQueue.main.async {
+                  if(error != nil){
+                      print("error", error as Any)
+                      reject("false")
+                      return;
+                  }
+                  if downloadedImage != nil{
+                      completion(downloadedImage!)
+                  }
+              }
+          })
+      }else{
+          reject("false")
+      }
+  }
+
+}
+
+internal class EditImageDelegate: NSObject, ZLEditImageControllerDelegate {
+  var promise: Promise!
+  
+  public func onCancel() {
+    self.promise.reject("USER_CANCELLED", "User has cancelled")
+  }
+}
+
+internal struct PhotoEditOptions: Record {
+  @Field
+  var path: String?
+  
+  @Field
+  var stickers: [String]?
 }
